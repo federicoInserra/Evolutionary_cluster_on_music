@@ -1,0 +1,34 @@
+---
+title: "Untitled"
+author: "Lovro Katalinić"
+date: "12/7/2020"
+output: html_document
+---
+
+```{r}
+has_more_than_one <- function(line) {
+  artists <- line[2]
+  artists <- gsub('^.|.$|\'', '', artists)
+  artists <- as.list(strsplit(artists, ",")[[1]])
+  artists <- sapply(artists, function (x)  sub("^\\s+", "", x))
+  length(artists) > 1
+}
+
+
+
+data <- read.csv('./Dataset/data.csv')
+dim(data)
+data_min <- data[data$year > 1990,]
+data_min <- data_min[data_min$popularity > 30,]
+data_min <- data_min[c("year", "artists", "name")]
+dim(data_min)
+head(data_min,10)
+
+data_min2 <- apply(data_min, 1, has_more_than_one)
+data_min2 <- data_min[data_min2,]
+dim(data_min2)
+data_min2
+
+
+write.csv(data_min2,"artists-collabs-2.csv", row.names = FALSE)
+```
