@@ -2,6 +2,7 @@ import csv
 from collections import defaultdict
 import json
 from igraph import *
+import numpy as np
 
 
 
@@ -9,21 +10,19 @@ CSV_FILE_NAME = 'artists-collabs.csv'
 PLOT_NUMBER_OF_SONGS_BY_YEAR = False
 
 class Song:
-    def __init__(self, year, artists, name):
+    def __init__(self, year, artists, title):
         self.year = year
         self.artists = artists
-        self.name = name
+        self.title = title
         
     def __str__(self):
-        return self.year + ' - ' + str(self.artists) + ' - ' + self.name
+        return self.year + ' - ' + str(self.artists) + ' - ' + self.title
 
 
 # List of songs
 songs_by_year = defaultdict(list)
 
 
-# Set of artists
-artists_vertices = set()
 
 
 def prepare_songs():
@@ -36,17 +35,15 @@ def prepare_songs():
         for collab in collabs:
 
             year = collab[0]
-            name = collab[2]
+            title = collab[2]
             
             artists = collab[1].strip("[]").split(',')
             artists = [artist.replace("\'", "").strip() for artist in artists]
             artists = set(artists)
             
-            song = Song(year, artists, name)
+            song = Song(year, artists, title)
             
-            songs_by_year[year].append({"title":name,"artists":list(artists)})
-            
-            artists_vertices.update(artists)
+            songs_by_year[year].append(song)
     
     return songs_by_year
             
@@ -54,53 +51,61 @@ def prepare_songs():
 
 
 
-def create_graph_year(songs,year, interval = 5):
+def create_graph_year(songs,year, years_range = 1):
 
-    #create list of artists to remember vertices ids
+    # create graph for every year or a group of year
+    # example: if I want to create a graph from year 1991 to 1995
+    # just set the years_range to 5
+    # To create a graph for a single year just leave years_range as 1
 
+    final_year = str( (int(year) + years_range - 1 ) )    
     collabs = {}
-    artists_list = []
-
+    
     for year in songs:
+
         songs_list = songs[year]
         
         for song in songs_list:
-            for artist in song['artists']:
-                if artist not in collabs:
-                    cobs = song['artists']
-                    cobs.remove(artist)
-                    collabs[artist] = cobs
-                
-                else:
-                    cobs = collabs[artist]
-                    cobs += song['artists']
-                    cobs.remove(artist)
-                    collabs[artist] = cobs
             
-
-        if year == "1993":
+            for artist in song.artists:
+                
+                if artist not in collabs:
+                    
+                    collabs[artist] = list(song.artists)
+                    
+    
+                else:
+                    
+                    collabs[artist] += list(song.artists)
+                    
+            
+        if year == final_year:
             break
     
     
     g = Graph()
-    g.add_vertices(list(collabs.keys()))
+    artist_indexes = list(collabs.keys())
+    g.add_vertices(artist_indexes)
+    
 
     
     for artist in collabs:
         
         for collaborator in set(collabs[artist]):
             
-            artist = g.vs.find(artist)
-            collaborator = g.vs.find(collaborator)
-            g.add_edges([(artist,collaborator)])
+            if (artist != collaborator): # doesn't create self-loop
+                
+                g.add_edges([(artist,collaborator)])
     
-    print(summary(g))
+    print('Total graph has {} vertices and {} edges.'.format(g.vcount(), g.ecount()))
+    print('The artists with most collaborations are:')
+    sorted_degrees = np.argsort(g.degree())
+    for i in range(1,11):
+        print('- {} with {} collaborations'.format(g.vs[sorted_degrees[-i]]['name'], g.degree(sorted_degrees[-i])))
 
 
 
 
-
-#----------------------MAIN
 songs = prepare_songs()
 create_graph_year(songs,"1991")
 
