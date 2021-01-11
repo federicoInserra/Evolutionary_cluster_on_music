@@ -18,8 +18,8 @@ has_more_than_one <- function(line) {
 
 data <- read.csv('./Dataset/data.csv')
 dim(data)
-data_min <- data[data$year > 1990,]
-data_min <- data_min[data_min$popularity > 30,]
+data_min <- data[data$year > 1985,]
+data_min <- data_min[data_min$popularity > 10,]
 data_min <- data_min[c("year", "artists", "name")]
 dim(data_min)
 head(data_min,10)
@@ -30,5 +30,5 @@ dim(data_min2)
 data_min2
 
 
-write.csv(data_min2,"artists-collabs-2.csv", row.names = FALSE)
+write.csv(data_min2,"artists-collabs-3.csv", row.names = FALSE)
 ```

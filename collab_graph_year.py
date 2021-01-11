@@ -1,4 +1,4 @@
-import csv
+import csv, pdb
 from collections import defaultdict
 import json
 from igraph import *
@@ -102,12 +102,20 @@ def create_graph_year(songs,year, years_range = 1):
     sorted_degrees = np.argsort(g.degree())
     for i in range(1,11):
         print('- {} with {} collaborations'.format(g.vs[sorted_degrees[-i]]['name'], g.degree(sorted_degrees[-i])))
+        
+    return g
+    
 
-
+def find_communities(graph):
+    communities = graph.community_walktrap()
+    print(communities.as_clustering())
+    plot(communities.as_clustering())
 
 
 songs = prepare_songs()
-create_graph_year(songs,"1991")
+graph = create_graph_year(songs, "2010", 1)
+find_communities(graph)
+
 
 
 
