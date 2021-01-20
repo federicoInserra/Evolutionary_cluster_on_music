@@ -7,7 +7,6 @@ import numpy as np
 
 
 CSV_FILE_NAME = 'artists-collabs.csv'
-PLOT_NUMBER_OF_SONGS_BY_YEAR = False
 
 class Song:
     def __init__(self, year, artists, title):
@@ -26,12 +25,14 @@ songs_by_year = defaultdict(list)
 
 
 def prepare_songs():
+
     # Open CSV file and parse the songs into the instances of class Song
+
     with open(CSV_FILE_NAME, encoding='utf-8') as collabs_file:
         collabs = csv.reader(collabs_file, delimiter=',')
         next(collabs) # Skipping header
         
-        
+        # create the dict that contains all the songs divided by year
         for collab in collabs:
 
             year = collab[0]
@@ -45,7 +46,8 @@ def prepare_songs():
             
             songs_by_year[year].append(song)
 
-    
+
+    # load the file that contains the genres of every artist
     with open(r"Dataset\artist_genres.json", encoding="utf-8") as f:
 
         artist_genres = json.load(f)
@@ -114,6 +116,8 @@ def aggregate_graphs(songs,year, years_range = 1):
 
 
 def create_year_graph(songs, year):
+    
+    # create a graph for the year given in input
 
     songs_list = songs[year]
     collabs = {}
@@ -141,7 +145,7 @@ def create_year_graph(songs, year):
         
         for collaborator in set(collabs[artist]):
             
-            if (artist != collaborator): # doesn't create self-loop
+            if (artist != collaborator):  # doesn't create self-loop
                 
                 g.add_edges([(artist,collaborator)])
     
@@ -158,7 +162,14 @@ def create_year_graph(songs, year):
 
 def find_communities(graph, year):
 
+    # Run the community algorithm on the graph to find the communities for that year
     communities = graph.community_walktrap()
+
+    # create the story of collaboration for every artist and every year
+    # so in artists_story for a particular artist and a particular year
+    # we will have the list of the genres of the artists that were in the same community that particular years
+    # so for example if the algorithm find a community in the graph for the year 2015 that contains Eminem,Rhianna and Shakira
+    # then artists_story[Eminem][2015] = [rap, pop, latin] or something similar
 
     for community in communities.as_clustering():
         
@@ -172,9 +183,9 @@ def find_communities(graph, year):
                 artists_story[artist_name][year] = []
             
             try:
-                community_genres += artists_genre[artist_name]
+                community_genres += artists_genre[artist_name] # get the genres of the artist from the file
             except:
-                print("The following artist couldn't be found")
+                print("The following artist couldn't be found") # the artist wasn't in the file
                 print(artist)
                 print(artist_name)
 
@@ -182,24 +193,78 @@ def find_communities(graph, year):
         for artist in community:
             artist_name = graph.vs[artist]["name"]
             community_genres = set(community_genres) #remove duplicates
-            artists_story[artist_name][year].append(list(community_genres))
+            community_genres = filter_genres(community_genres) # use the filter to convert all the sub-genres in the main genres
+
+            artists_story[artist_name][year] = community_genres
+
+    
+    return communities
+        
+
+
+def filter_genres(community_genres):
+
+    # map the sub-genres in main genres
+    # for example the sub-genre "modern rock" will be substitued by "rock"
+    filtered_genres = []
+    for gen in community_genres:
+        for filt in genre_filter:
+            if gen in genre_filter[filt]:
+                filtered_genres.append(filt)
+    
+    return filtered_genres
 
 
 
 
+def show_artist_history(artist):
+
+    for year in artists_story[artist]:
+        print("YEAR: ", year)
+        print("COMMUNITY: ", artists_story[artist][year])
+
+
+def analyze_communities(communities):
+    pass
 
 songs, artists_genre = prepare_songs()
 
 artists_story = {}
 
+genre_filter = {
+    "rock": ["new rave", "british indie rock", "rock", "post-hardcore", "modern rock", "screamo"],
+    "house": ["progressive house", "brostep", "electro house", "tropical house", "progressive electro house", "house" ],
+    "hip hop": ["kentucky hip hop", "portland hip hop", "brooklyn drill", "trap", "memphis hip hop", "ohio hip hop", "detroit trap", "trap latino", "chicago drill", "atl trap", "vapor trap", "australian hip hop", "latin hip hop", "polynesian hip hop", "uk hip hop", "underground hip hop", "dark trap", "east coast hip hop", "new york drill", "crunk", "hip hop", "drill", "miami hip hop", "queens hip hop", "atl hip hop", "conscious hip hop", "trap queen", "southern hip hop", "canadian hip hop", "minnesota hip hop", "tennessee hip hop" ],
+    "rap": ["rap", "st louis rap", "gangster rap", "dfw rap", "sad rap", "alabama rap", "nyc rap", "viral rap", "florida rap", "toronto rap", "rap conscient", "melodic rap", "baton rouge rap", "meme rap", "chicago rap", "dirty south rap", "emo rap", "philly rap", "rap rock"],
+    "indie": ["indietronica", "indie soul", "indie poptimism", "indie"],
+    "jazz": ["smooth saxophone", "smooth jazz", "jazz"],
+    "tropical": ["tropical"],
+    "pop": ["barbadian pop", "canadian pop", "pop rap", "dance pop", "social media pop", "etherpop", "scandipop", "indie pop rap", "post-teen pop", "pop edm", "pop", "pop dance", "electropop"],
+    "r&b": ["alternative r&b", "pop r&b", "r&b", "neo soul", "escape room", "canadian contemporary r&b", "urban contemporary"],
+    "dance": ["dance", "uk dance", "edm", "german dance"],
+    "reggae": ["reggae", "dancehall", "reggae fusion"],
+    "latin": ["latin", "reggaeton flow", "reggaeton"]
 
+}
+
+
+
+all_communities = []
 for year in songs:
 
     graph = create_year_graph(songs, year)
-    find_communities(graph, year)
+    communities = find_communities(graph, year)
+    all_communities.append(communities)
     
-
-
-with open("artist_story.json", "w") as out:
+            
+# save the artists story as a json file
+with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
+
+
+show_artist_history("Eminem")
+
+
+
+
 
