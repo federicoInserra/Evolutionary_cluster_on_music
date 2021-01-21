@@ -117,7 +117,7 @@ def aggregate_graphs(songs,year, years_range = 1):
     
 
 
-def create_year_graph(songs, year):
+def create_year_graph(songs, year, print_stats=False):
     
     # create a graph for the year given in input
 
@@ -151,12 +151,13 @@ def create_year_graph(songs, year):
                 
                 g.add_edges([(artist,collaborator)])
     
-    print('Total graph has {} vertices and {} edges.'.format(g.vcount(), g.ecount()))
-    print('The artists with most collaborations are:')
-    sorted_degrees = np.argsort(g.degree())
-    for i in range(1,11):
-        print('- {} with {} collaborations'.format(g.vs[sorted_degrees[-i]]['name'], g.degree(sorted_degrees[-i])))
-        
+    if print_stats:
+        print('Total graph has {} vertices and {} edges.'.format(g.vcount(), g.ecount()))
+        print('The artists with most collaborations are:')
+        sorted_degrees = np.argsort(g.degree())
+        for i in range(1,11):
+            print('- {} with {} collaborations'.format(g.vs[sorted_degrees[-i]]['name'], g.degree(sorted_degrees[-i])))
+            
     return g
 
 
@@ -172,6 +173,8 @@ def find_communities(graph, year):
     # we will have the list of the genres of the artists that were in the same community that particular years
     # so for example if the algorithm find a community in the graph for the year 2015 that contains Eminem,Rhianna and Shakira
     # then artists_story[Eminem][2015] = [rap, pop, latin] or something similar
+    
+    genres_by_communities = []
 
     for community in communities.as_clustering():
         
@@ -187,10 +190,9 @@ def find_communities(graph, year):
             try:
                 community_genres += artists_genre[artist_name] # get the genres of the artist from the file
             except:
-                print("The following artist couldn't be found") # the artist wasn't in the file
-                print(artist)
-                print(artist_name)
+                print("The following artist couldn't be found: {} - {}".format(artist, artist_name)) # the artist wasn't in the file
 
+        genres_by_communities.append(filter_genres(community_genres)) 
         
         for artist in community:
             artist_name = graph.vs[artist]["name"]
@@ -199,8 +201,9 @@ def find_communities(graph, year):
 
             artists_story[artist_name][year] = community_genres
 
-    
-    return communities
+          
+        
+    return genres_by_communities
         
 
 
@@ -277,36 +280,52 @@ def plot_artist_story(artist):
 
 
 def analyze_communities(communities):
-    pass
+    most_common_genres = []
+    for community in communities:
+        if community:
+            most_common = max(set(community), key=community.count)
+            most_common_genres.append(most_common)
+       
+    print(most_common_genres)
+        
+    
 
 songs, artists_genre = prepare_songs()
 
 artists_story = {}
 
 genre_filter = {
-    "rock": ["new rave", "british indie rock", "rock", "post-hardcore", "modern rock", "screamo"],
+    "rock": ["modern folk rock", "alternative roots rock", "israeli rock", "hard rock", "argentine rock", "irish rock", "chamber folk", "rock en espanol", "chilean rock", "latin rock", "post-grunge", "spanish pop rock", "classic rock", "pop rock", "rock-and-roll", "rockabilly", "new rave", "british indie rock", "dance rock", "art rock", "folk", "new wave", "rock", "post-hardcore", "modern rock", "screamo", "folk rock", "mellow gold", "soft rock"],
     "house": ["progressive house", "brostep", "electro house", "tropical house", "progressive electro house", "house" ],
-    "hip hop": ["kentucky hip hop", "portland hip hop", "brooklyn drill", "trap", "memphis hip hop", "ohio hip hop", "detroit trap", "trap latino", "chicago drill", "atl trap", "vapor trap", "australian hip hop", "latin hip hop", "polynesian hip hop", "uk hip hop", "underground hip hop", "dark trap", "east coast hip hop", "new york drill", "crunk", "hip hop", "drill", "miami hip hop", "queens hip hop", "atl hip hop", "conscious hip hop", "trap queen", "southern hip hop", "canadian hip hop", "minnesota hip hop", "tennessee hip hop" ],
-    "rap": ["rap", "st louis rap", "gangster rap", "dfw rap", "sad rap", "alabama rap", "nyc rap", "viral rap", "florida rap", "toronto rap", "rap conscient", "melodic rap", "baton rouge rap", "meme rap", "chicago rap", "dirty south rap", "emo rap", "philly rap", "rap rock"],
-    "indie": ["indietronica", "indie soul", "indie poptimism", "indie"],
-    "jazz": ["smooth saxophone", "smooth jazz", "jazz"],
-    "tropical": ["tropical"],
-    "pop": ["barbadian pop", "canadian pop", "pop rap", "dance pop", "social media pop", "etherpop", "scandipop", "indie pop rap", "post-teen pop", "pop edm", "pop", "pop dance", "electropop"],
-    "r&b": ["alternative r&b", "pop r&b", "r&b", "neo soul", "escape room", "canadian contemporary r&b", "urban contemporary"],
-    "dance": ["dance", "uk dance", "edm", "german dance"],
-    "reggae": ["reggae", "dancehall", "reggae fusion"],
-    "latin": ["latin", "reggaeton flow", "reggaeton"]
-
+    "hip hop": ["bass trap", "dutch hip hop", "mexican hip hop", "desi hip hop", "kentucky hip hop", "portland hip hop", "brooklyn drill", "trap", "memphis hip hop", "ohio hip hop", "detroit trap", "trap latino", "chicago drill", "atl trap", "vapor trap", "australian hip hop", "latin hip hop", "polynesian hip hop", "uk hip hop", "underground hip hop", "dark trap", "east coast hip hop", "new york drill", "crunk", "hip hop", "drill", "miami hip hop", "queens hip hop", "atl hip hop", "conscious hip hop", "trap queen", "southern hip hop", "canadian hip hop", "minnesota hip hop", "tennessee hip hop" ],
+    "rap": ["k-rap", "rap underground mexicano", "comedy rap", "rap latina", "rap chileno", "rap", "west coast rap", "st louis rap", "gangster rap", "dfw rap", "sad rap", "alabama rap", "nyc rap", "viral rap", "florida rap", "toronto rap", "rap conscient", "melodic rap", "baton rouge rap", "meme rap", "chicago rap", "dirty south rap", "emo rap", "philly rap", "rap rock"],
+    "indie": ["k-indie", "indie rock", "saskatchewan indie", "indie anthem-folk", "indietronica", "indie soul", "indie poptimism", "indie", "indie cafe pop", "spanish indie pop", "indie folk", "indie pop"],
+    "jazz": ["sleep", "environmental", "rebel blues", "nu jazz", "easy listening", "deep adult standards", "jazz trumper", "new orleans jazz", "soul", "swing", "vocal jazz", "soul blues", "traditional blues", "blues rock", "smooth saxophone", "smooth jazz", "jazz", "quiet storm", "adult standards", "jazz blues", "swing", "vocal jazz", "french jazz", "italian contemporary jazz", "jazz accordion", "accordion", "bandoneon", "chanson"],
+    "tropical": ["tropical", "tropical house"],
+    "metal" : ["nu metal", "alternative metal", "symphonic metal"],
+    "funk":["funk", "g funk", "instrumental funk", "afrobeat"],
+    "spiritual" : ["rap cristiano", "latin worship", "latin christian", "latin worship", "rock cristiano", "latin christian", "latin worship", "christian hip hop", "ccm", "christian alternative rock", "christian music", "worship"],
+    "movies" : ["video game music", "talent show", "sufi", "modern bollywood", "filmi", "british comedy", "hollywood", "movie tunes", "show tunes", "broadway", "disney", "video game music"],
+    "classical" : ["norwegian classical", "cello", "canadian classical", "classical piano", "hungarian classical performance", "post-romantic era", "british classical piano", "impressionism", "classical", "classical era", "early romantic era", "german romanticism", "violin", "classical performance", "orchestra", "american orchestra"],
+    "pop": ["psychedelic pop", "art pop", "nyc pop", "k-pop", "dutch pop", "pop violin", "bow pop", "folk-pop", "uk pop", "viral pop", "mainland chinese pop", "cantopop", "mandopop", "israeli pop", "antiviral pop", "latin pop", "desi pop", "laatin pop", "spanish pop", "bow pop", "pop punk", "socal pop punk", "post-teen pop", "mexican pop", "swedish pop", "classic italian pop", "italian adult pop", "operatic pop", "boy band", "europop", "latin pop", "barbadian pop", "canadian pop", "pop rap", "dance pop", "social media pop", "etherpop", "scandipop", "indie pop rap", "post-teen pop", "pop edm", "pop", "pop dance", "electropop"],
+    "r&b": ["korean r&b", "chill r&b", "alternative r&b", "pop r&b", "r&b", "neo soul", "escape room", "canadian contemporary r&b", "urban contemporary", "philly soul"],
+    "dance": ["dance", "uk dance", "edm", "german dance", "dance-punk", "alternative dance"],
+    "reggae": ["argentine reggae", "reggae", "dancehall", "reggae fusion", "ska argentino"],
+    "soundtrack" : ["soundtrack", "german soundtrack", "neoclassical darkwave", "oceania soundtrack", "british soundtrack", "canadian soundtrack"],
+    "latin": ["latin alternative", "latintronica", "nueva cancion", "latin", "reggaeton flow", "reggaeton", "vallenato", "vallenato moderno", "vallenato", "latin arena pop"],
+    "country" : ["outlaw country", "contemporary country", "country", "country road", "country rock", "bluegrass", "progressive bluegrass"],
+    "trance" : ["acid trance", "bubble trance", "dream trance", "german trance"],
+    "house" : ["deep euro house", "bleep techno", "electronica", "dubstep", "gaming dubstep",  "filter house", 'chicago house', 'disco', 'diva house', 'post-disco', 'vocal house', 'eurodance', 'hip house', 'tribal house', "german techno"],
+    "mexican" : ['banda', 'corrido', 'deep regional mexican', 'norteno', 'nuevo reginal mexicano', 'regional mexican', 'grupera', 'gruperas inmortales', 'ranchera']
 }
 
 
-
-all_communities = []
+#genres_by_communities = []
 for year in songs:
-
     graph = create_year_graph(songs, year)
-    communities = find_communities(graph, year)
-    all_communities.append(communities)
+    genres_by_communities = find_communities(graph, year)
+    analyze_communities(genres_by_communities)
+    pdb.set_trace()
     
             
 # save the artists story as a json file
@@ -316,7 +335,13 @@ with open("artists_story.json", "w") as out:
 
 artist_name = "Wiz Khalifa"
 #show_artist_history(artist_name)
-plot_artist_story(artist_name)
+#plot_artist_story(artist_name)
+
+# If we want to calculate CC
+# cc = graph.transitivity_undirected()
+# print('Clustering coefficient of year {} graph with {} vertices: {}.'.format(year, graph.vcount(), cc))
+
+
 
 
 
