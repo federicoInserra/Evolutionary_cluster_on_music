@@ -3,6 +3,8 @@ from collections import defaultdict
 import json
 from igraph import *
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 
@@ -222,6 +224,56 @@ def show_artist_history(artist):
     for year in artists_story[artist]:
         print("YEAR: ", year)
         print("COMMUNITY: ", artists_story[artist][year])
+        
+def plot_artist_story(artist):
+    
+    # creates dictionary which has genres as keys and list of years as value
+    years_of_genres = {}
+    for year in artists_story[artist]:
+        community = artists_story[artist][year]
+        for genre in community:
+            if genre not in years_of_genres:
+                years_of_genres[genre] = []         
+            elif year not in years_of_genres[genre]:
+                years_of_genres[genre].append(year)
+    
+    # create active year intervals for each genre
+    start = []
+    end = []
+    music = []
+    for genre in years_of_genres:
+        years = years_of_genres[genre]
+        start_of_interval = True
+        for year in years:
+            if start_of_interval or int(year) - end[-1] != 1:
+                start.append(int(year))
+                end.append(int(year))
+                music.append(genre)
+                start_of_interval = False
+            else:
+                end[-1] = int(year)
+    
+                
+    # create a dataframe
+    df = pd.DataFrame({'group':music, 'start':start , 'end':end })
+     
+    # reorder it following the values of the first value
+    ordered_df = df.sort_values(by='start')
+    group_indices = dict([(y,x+1) for x,y in enumerate((set(ordered_df['group'])))])
+    positions = [group_indices[x] for x in ordered_df['group']]
+     
+    import seaborn as sns
+    plt.hlines(y=positions, xmin=ordered_df['start'], xmax=ordered_df['end'], color='lightblue', alpha=0.8, linewidth=5.0)
+    plt.ylim([0, len(group_indices)+1])
+    plt.scatter(ordered_df['start'], positions, color='black', alpha=1, label='start')
+    plt.scatter(ordered_df['end'], positions, color='black', alpha=1 , label='end')
+     
+    # Add title and axis names
+    plt.yticks(positions, ordered_df['group'])
+    plt.title("{}'s music genres over years".format(artist), loc='center')
+    plt.xlabel('Active years')
+    plt.ylabel('Genres')
+    plt.show()
 
 
 def analyze_communities(communities):
@@ -262,7 +314,9 @@ with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
 
 
-show_artist_history("Eminem")
+artist_name = "Wiz Khalifa"
+#show_artist_history(artist_name)
+plot_artist_story(artist_name)
 
 
 
