@@ -1,5 +1,5 @@
 import csv, pdb
-from collections import defaultdict
+from collections import defaultdict, Counter
 import json
 from igraph import *
 import numpy as np
@@ -196,7 +196,7 @@ def find_communities(graph, year):
         
         for artist in community:
             artist_name = graph.vs[artist]["name"]
-            community_genres = set(community_genres) #remove duplicates
+            #community_genres = set(community_genres) #remove duplicates
             community_genres = filter_genres(community_genres) # use the filter to convert all the sub-genres in the main genres
 
             artists_story[artist_name][year] = community_genres
@@ -232,47 +232,53 @@ def plot_artist_story(artist):
     
     # creates dictionary which has genres as keys and list of years as value
     years_of_genres = {}
+    list_of_genres = []
+    
     for year in artists_story[artist]:
         community = artists_story[artist][year]
-        for genre in community:
+        counts = Counter(community)
+        
+        occurences = counts.most_common()
+        most_common_counts = occurences[0][1]
+  
+        dominant_genres = []
+        i = 0
+        while i < len(occurences) and occurences[i][1] == most_common_counts:
+            dominant_genres.append(occurences[i][0])
+            i += 1
+        
+        for genre in dominant_genres:
+            #pdb.set_trace()
             if genre not in years_of_genres:
-                years_of_genres[genre] = []         
+                list_of_genres.append(genre)
+                years_of_genres[genre] = []
+                years_of_genres[genre].append(year)
             elif year not in years_of_genres[genre]:
                 years_of_genres[genre].append(year)
-    
-    # create active year intervals for each genre
-    start = []
-    end = []
-    music = []
+               
+    # create graph points
+    xs = []
+    ys = []
     for genre in years_of_genres:
         years = years_of_genres[genre]
-        start_of_interval = True
         for year in years:
-            if start_of_interval or int(year) - end[-1] != 1:
-                start.append(int(year))
-                end.append(int(year))
-                music.append(genre)
-                start_of_interval = False
-            else:
-                end[-1] = int(year)
+            xs.append(year)
+            y =list_of_genres.index(genre) + 1
+            ys.append(y)
+                 
+    sorted_points = sorted(zip(xs,ys), key=lambda x:x[0])
+    xs = [x[0] for x in sorted_points]
+    ys = [x[1] for x in sorted_points]
     
-                
-    # create a dataframe
-    df = pd.DataFrame({'group':music, 'start':start , 'end':end })
-     
-    # reorder it following the values of the first value
-    ordered_df = df.sort_values(by='start')
-    group_indices = dict([(y,x+1) for x,y in enumerate((set(ordered_df['group'])))])
-    positions = [group_indices[x] for x in ordered_df['group']]
-     
+    # plot
     import seaborn as sns
-    plt.hlines(y=positions, xmin=ordered_df['start'], xmax=ordered_df['end'], color='lightblue', alpha=0.8, linewidth=5.0)
-    plt.ylim([0, len(group_indices)+1])
-    plt.scatter(ordered_df['start'], positions, color='black', alpha=1, label='start')
-    plt.scatter(ordered_df['end'], positions, color='black', alpha=1 , label='end')
+    plt.ylim([0, len(set(ys))+1])
+    plt.plot(xs, ys, color='black', alpha=1, zorder=1)
+    plt.scatter(xs, ys, color='blue', alpha=1, label='start', zorder=2)
      
-    # Add title and axis names
-    plt.yticks(positions, ordered_df['group'])
+    # add title and axis names
+    plt.hlines(range(1, len(set(ys))+1), min(xs), max(xs), linestyle='dashed', alpha=0.1)
+    plt.yticks(range(1, len(set(ys))+1), list_of_genres)
     plt.title("{}'s music genres over years".format(artist), loc='center')
     plt.xlabel('Active years')
     plt.ylabel('Genres')
@@ -320,12 +326,10 @@ genre_filter = {
 }
 
 
-#genres_by_communities = []
 for year in songs:
     graph = create_year_graph(songs, year)
     genres_by_communities = find_communities(graph, year)
-    analyze_communities(genres_by_communities)
-    pdb.set_trace()
+    #analyze_communities(genres_by_communities)
     
             
 # save the artists story as a json file
@@ -333,9 +337,9 @@ with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
 
 
-artist_name = "Wiz Khalifa"
+artist_name = "Eminem"
 #show_artist_history(artist_name)
-#plot_artist_story(artist_name)
+plot_artist_story(artist_name)
 
 # If we want to calculate CC
 # cc = graph.transitivity_undirected()
