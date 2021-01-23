@@ -166,7 +166,27 @@ def create_year_graph(songs, year, print_stats=False):
 def find_communities(graph, year):
 
     # Run the community algorithm on the graph to find the communities for that year
+
     communities = graph.community_walktrap()
+
+    #communities = graph.community_fastgreedy() doesn't work in graph with multiple edges
+
+    #communities = graph.community_edge_betweenness() strange error with matrix
+
+    #communities = graph.community_infomap()
+
+    #communities = graph.community_label_propagation()
+
+    #communities = graph.community_leading_eigenvector() 
+
+    #communities = graph.community_multilevel()
+
+    #communities = graph.community_optimal_modularity() # this one doesn't work
+
+    #communities = graph.community_spinglass() # doesn't work
+
+
+
 
     # create the story of collaboration for every artist and every year
     # so in artists_story for a particular artist and a particular year
@@ -177,6 +197,7 @@ def find_communities(graph, year):
     genres_by_communities = []
 
     for community in communities.as_clustering():
+    #for community in communities:
         
         community_genres = []
         for artist in community:
@@ -340,6 +361,29 @@ with open("artists_story.json", "w") as out:
 artist_name = "Eminem"
 #show_artist_history(artist_name)
 plot_artist_story(artist_name)
+
+artist_name = "Snoop Dogg"
+plot_artist_story(artist_name)
+
+artist_name = "Ed Sheeran"
+plot_artist_story(artist_name)
+
+artist_name = "Jennifer Lopez"
+plot_artist_story(artist_name)
+
+
+artist_name = "Justin Bieber"
+plot_artist_story(artist_name)
+
+
+artist_name = "Katy Perry"
+plot_artist_story(artist_name)
+
+
+artist_name = "Lady Gaga"
+plot_artist_story(artist_name)
+
+
 
 # If we want to calculate CC
 # cc = graph.transitivity_undirected()
