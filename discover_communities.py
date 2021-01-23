@@ -172,7 +172,8 @@ def analyze_clusters(year, graph, memberships):
     return exp, cond, cc, tp   
 
 
-def find_communities(graph, year):
+
+def find_communities(graph, year, year_ind):
 
     # Run different community algorithms on the graph to find the communities for that year
     # and chooses the one with the smallest grade which is defined as grade = exp + cond + (1-cc) + (1-tp)
@@ -185,10 +186,11 @@ def find_communities(graph, year):
                         graph.community_multilevel()]
 
     algorithm_grades = []
-    for option in community_options:
+    for i, option in enumerate(community_options):
         exp, cond, cc, tp = analyze_clusters(year, graph, option.membership)
         grade = exp + cond + (1-cc) + (1-tp)
         algorithm_grades.append(grade)
+        total_metrics[year_ind][i] += np.array([exp, cond, cc, tp])
 
     communities = community_options[np.argmin(algorithm_grades)]
     print('Index of choosen algorithm for year {}: {}'.format(year, np.argmin(algorithm_grades)))
@@ -317,6 +319,11 @@ def plot_artist_story(artist):
 
 songs, artists_genre = prepare_songs()
 
+number_of_years = len(songs)
+number_of_algorithms = 5
+number_of_measures = 4
+total_metrics = np.zeros([number_of_years, number_of_algorithms, number_of_measures])
+
 artists_story = {}
 
 genre_filter = {
@@ -345,9 +352,9 @@ genre_filter = {
 }
 
 
-for year in songs:
+for i, year in enumerate(songs):
     graph = create_year_graph(songs, year)
-    genres_by_communities = find_communities(graph, year)
+    genres_by_communities = find_communities(graph, year, i)
  
             
 # save the artists story as a json file
@@ -383,11 +390,12 @@ plot_artist_story(artist_name)
 artist_name = "Lady Gaga"
 plot_artist_story(artist_name)
 
+average_measures = np.mean(total_metrics, 0)
+print('Average measures over the years: \n{}'.format(average_measures))
+print('Grades of community algorithms by average measuers over the years: \n{}'.format([alg[0] + alg[1] + (1-alg[2]) + (1-alg[3]) for alg in average_measures]))
 
 
-# If we want to calculate CC
 
-# print('Clustering coefficient of year {} graph with {} vertices: {}.'.format(year, graph.vcount(), cc))
 
     
     
