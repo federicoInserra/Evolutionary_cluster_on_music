@@ -9,7 +9,7 @@ import matplotlib.ticker as ticker
 import itertools
 
 CSV_FILE_NAME = 'artists-collabs.csv'
-PLOT_NUMBER_OF_SONGS_BY_YEAR = False
+PLOT_NUMBER_OF_SONGS_BY_YEAR = True
 
 class Song:
     def __init__(self, year, artists, name):

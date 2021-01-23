@@ -5,7 +5,7 @@ from igraph import *
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from community_measures import *
 
 
 CSV_FILE_NAME = 'artists-collabs.csv'
@@ -201,8 +201,7 @@ def find_communities(graph, year):
 
             artists_story[artist_name][year] = community_genres
 
-          
-        
+ 
     return genres_by_communities
         
 
@@ -294,7 +293,8 @@ def analyze_communities(communities):
        
     print(most_common_genres)
         
-    
+
+
 
 songs, artists_genre = prepare_songs()
 
@@ -329,21 +329,35 @@ genre_filter = {
 for year in songs:
     graph = create_year_graph(songs, year)
     genres_by_communities = find_communities(graph, year)
-    #analyze_communities(genres_by_communities)
+    
+    comms = graph.community_walktrap()
+    memberships = comms.as_clustering().membership
+    exp = expansion(graph, memberships)
+    cond = conductance(graph, memberships)
+    cc = graph.transitivity_undirected()
+    tp = tp_ratio(graph, memberships)
+
+    print('Year {} = Transitivity: {}, Expansion: {}, Conducatance: {}, Triangle participation ratio: {}'.format(year, cc, exp, cond, tp))
     
             
 # save the artists story as a json file
 with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
 
+# Plot simple graph for the report:
+g = create_year_graph(songs,'1991')
+plot(g, 'report-images/graph-1991.png', layout=g.layout("kk"))
 
-artist_name = "Eminem"
+artist_name = "Bad Bunny"
 #show_artist_history(artist_name)
-plot_artist_story(artist_name)
+#plot_artist_story(artist_name)
 
 # If we want to calculate CC
-# cc = graph.transitivity_undirected()
+
 # print('Clustering coefficient of year {} graph with {} vertices: {}.'.format(year, graph.vcount(), cc))
+
+    
+    
 
 
 
