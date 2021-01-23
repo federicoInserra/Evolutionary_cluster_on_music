@@ -3,7 +3,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import csv
 import json
 
-
+# Code to retrieve all the genres of the artists from the dataset and save them as a json file
 
 CLIENT_ID = "INSERT YOUR CLIENT ID"
 CLIENT_SECRET = "INSERT YOUR CLIENT SECRET"
