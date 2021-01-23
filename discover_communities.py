@@ -161,31 +161,42 @@ def create_year_graph(songs, year, print_stats=False):
     return g
 
 
+def analyze_clusters(year, graph, memberships): 
+    # Calculates community metrics
+
+    exp = expansion(graph, memberships)
+    cond = conductance(graph, memberships)
+    cc = graph.transitivity_undirected()
+    tp = tp_ratio(graph, memberships)
+    
+    return exp, cond, cc, tp   
 
 
 def find_communities(graph, year):
 
-    # Run the community algorithm on the graph to find the communities for that year
+    # Run different community algorithms on the graph to find the communities for that year
+    # and chooses the one with the smallest grade which is defined as grade = exp + cond + (1-cc) + (1-tp)
+    # which measures deviance from the perfect communities
+    
+    community_options = [graph.community_walktrap().as_clustering(),
+                        graph.community_infomap(),
+                        graph.community_label_propagation(),
+                        graph.community_leading_eigenvector(),
+                        graph.community_multilevel()]
 
-    communities = graph.community_walktrap()
+    algorithm_grades = []
+    for option in community_options:
+        exp, cond, cc, tp = analyze_clusters(year, graph, option.membership)
+        grade = exp + cond + (1-cc) + (1-tp)
+        algorithm_grades.append(grade)
 
-    #communities = graph.community_fastgreedy() doesn't work in graph with multiple edges
+    communities = community_options[np.argmin(algorithm_grades)]
+    print('Index of choosen algorithm for year {}: {}'.format(year, np.argmin(algorithm_grades)))
 
-    #communities = graph.community_edge_betweenness() strange error with matrix
-
-    #communities = graph.community_infomap()
-
-    #communities = graph.community_label_propagation()
-
-    #communities = graph.community_leading_eigenvector() 
-
-    #communities = graph.community_multilevel()
-
+    #communities = graph.community_fastgreedy() #doesn't work in graph with multiple edges
+    #communities = graph.community_edge_betweenness() #strange error with matrix
     #communities = graph.community_optimal_modularity() # this one doesn't work
-
     #communities = graph.community_spinglass() # doesn't work
-
-
 
 
     # create the story of collaboration for every artist and every year
@@ -196,8 +207,7 @@ def find_communities(graph, year):
     
     genres_by_communities = []
 
-    for community in communities.as_clustering():
-    #for community in communities:
+    for community in communities:
         
         community_genres = []
         for artist in community:
@@ -305,18 +315,6 @@ def plot_artist_story(artist):
     plt.show()
 
 
-def analyze_communities(communities):
-    most_common_genres = []
-    for community in communities:
-        if community:
-            most_common = max(set(community), key=community.count)
-            most_common_genres.append(most_common)
-       
-    print(most_common_genres)
-        
-
-
-
 songs, artists_genre = prepare_songs()
 
 artists_story = {}
@@ -350,16 +348,7 @@ genre_filter = {
 for year in songs:
     graph = create_year_graph(songs, year)
     genres_by_communities = find_communities(graph, year)
-    
-    comms = graph.community_walktrap()
-    memberships = comms.as_clustering().membership
-    exp = expansion(graph, memberships)
-    cond = conductance(graph, memberships)
-    cc = graph.transitivity_undirected()
-    tp = tp_ratio(graph, memberships)
-
-    print('Year {} = Transitivity: {}, Expansion: {}, Conducatance: {}, Triangle participation ratio: {}'.format(year, cc, exp, cond, tp))
-    
+ 
             
 # save the artists story as a json file
 with open("artists_story.json", "w") as out:
