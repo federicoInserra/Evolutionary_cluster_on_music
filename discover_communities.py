@@ -362,12 +362,14 @@ with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
 
 # Plot simple graph for the report:
-g = create_year_graph(songs,'1991')
-plot(g, 'report-images/graph-1991.png', layout=g.layout("kk"))
+g = create_year_graph(songs,'2019')
+plot(g, 'report-images/graph-2019.png', layout=g.layout("kk"))
 
 artist_name = "Bad Bunny"
-#show_artist_history(artist_name)
-#plot_artist_story(artist_name)
+plot_artist_story(artist_name)
+
+artist_name = "Eminem"
+plot_artist_story(artist_name)
 
 artist_name = "Snoop Dogg"
 plot_artist_story(artist_name)
