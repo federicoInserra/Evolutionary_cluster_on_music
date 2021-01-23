@@ -2,6 +2,10 @@ import numpy as np
 from igraph import *
 import pdb
 
+
+# Contains the functions to calculate the metrics 
+
+
 def expansion(g, memberships):
     n = len(memberships)
     groups = len(np.unique(memberships))
