@@ -60,63 +60,6 @@ def prepare_songs():
 
 
 
-
-def aggregate_graphs(songs,year, years_range = 1):
-
-    # create graph for every year or a group of year
-    # example: if I want to create a graph from year 1991 to 1995
-    # just set the years_range to 5
-    # To create a graph for a single year just leave years_range as 1
-
-    final_year = str( (int(year) + years_range - 1 ) )    
-    collabs = {}
-    
-    for year in songs:
-
-        songs_list = songs[year]
-        
-        for song in songs_list:
-            
-            for artist in song.artists:
-                
-                if artist not in collabs:
-                    
-                    collabs[artist] = list(song.artists)
-                    
-    
-                else:
-                    
-                    collabs[artist] += list(song.artists)
-                    
-            
-        if year == final_year:
-            break
-    
-    
-    g = Graph()
-    artist_indexes = list(collabs.keys())
-    g.add_vertices(artist_indexes)
-    
-
-    
-    for artist in collabs:
-        
-        for collaborator in set(collabs[artist]):
-            
-            if (artist != collaborator): # doesn't create self-loop
-                
-                g.add_edges([(artist,collaborator)])
-    
-    print('Total graph has {} vertices and {} edges.'.format(g.vcount(), g.ecount()))
-    print('The artists with most collaborations are:')
-    sorted_degrees = np.argsort(g.degree())
-    for i in range(1,11):
-        print('- {} with {} collaborations'.format(g.vs[sorted_degrees[-i]]['name'], g.degree(sorted_degrees[-i])))
-        
-    return g
-    
-
-
 def create_year_graph(songs, year, print_stats=False):
     
     # create a graph for the year given in input
@@ -195,11 +138,6 @@ def find_communities(graph, year, year_ind):
     communities = community_options[np.argmin(algorithm_grades)]
     print('Index of choosen algorithm for year {}: {}'.format(year, np.argmin(algorithm_grades)))
 
-    #communities = graph.community_fastgreedy() #doesn't work in graph with multiple edges
-    #communities = graph.community_edge_betweenness() #strange error with matrix
-    #communities = graph.community_optimal_modularity() # this one doesn't work
-    #communities = graph.community_spinglass() # doesn't work
-
 
     # create the story of collaboration for every artist and every year
     # so in artists_story for a particular artist and a particular year
@@ -229,7 +167,6 @@ def find_communities(graph, year, year_ind):
         
         for artist in community:
             artist_name = graph.vs[artist]["name"]
-            #community_genres = set(community_genres) #remove duplicates
             community_genres = filter_genres(community_genres) # use the filter to convert all the sub-genres in the main genres
 
             artists_story[artist_name][year] = community_genres
@@ -255,10 +192,14 @@ def filter_genres(community_genres):
 
 
 def show_artist_history(artist):
+    # print the story of the artists in a simple format
 
     for year in artists_story[artist]:
         print("YEAR: ", year)
         print("COMMUNITY: ", artists_story[artist][year])
+
+
+
         
 def plot_artist_story(artist):
     
@@ -280,7 +221,7 @@ def plot_artist_story(artist):
             i += 1
         
         for genre in dominant_genres:
-            #pdb.set_trace()
+            
             if genre not in years_of_genres:
                 list_of_genres.append(genre)
                 years_of_genres[genre] = []
@@ -326,6 +267,9 @@ total_metrics = np.zeros([number_of_years, number_of_algorithms, number_of_measu
 
 artists_story = {}
 
+
+#filter used to map sub-genres into main genres
+
 genre_filter = {
     "rock": ["modern folk rock", "alternative roots rock", "israeli rock", "hard rock", "argentine rock", "irish rock", "chamber folk", "rock en espanol", "chilean rock", "latin rock", "post-grunge", "spanish pop rock", "classic rock", "pop rock", "rock-and-roll", "rockabilly", "new rave", "british indie rock", "dance rock", "art rock", "folk", "new wave", "rock", "post-hardcore", "modern rock", "screamo", "folk rock", "mellow gold", "soft rock"],
     "house": ["progressive house", "brostep", "electro house", "tropical house", "progressive electro house", "house" ],
@@ -352,6 +296,7 @@ genre_filter = {
 }
 
 
+# create the graphs and find the communities
 for i, year in enumerate(songs):
     graph = create_year_graph(songs, year)
     genres_by_communities = find_communities(graph, year, i)
@@ -361,14 +306,11 @@ for i, year in enumerate(songs):
 with open("artists_story.json", "w") as out:
     json.dump(artists_story, out)
 
-# Plot simple graph for the report:
-g = create_year_graph(songs,'2019')
-plot(g, 'report-images/graph-2019.png', layout=g.layout("kk"))
+
+
+# print some artists 
 
 artist_name = "Bad Bunny"
-plot_artist_story(artist_name)
-
-artist_name = "Eminem"
 plot_artist_story(artist_name)
 
 artist_name = "Snoop Dogg"
@@ -392,19 +334,14 @@ plot_artist_story(artist_name)
 artist_name = "Lady Gaga"
 plot_artist_story(artist_name)
 
+
+# generate measures for the last table
 average_measures = np.mean(total_metrics, 0)
 print('Average measures over the years: \n{}'.format(average_measures))
-print('Grades of community algorithms by average measuers over the years: \n{}'.format([alg[0] + alg[1] + (1-alg[2]) + (1-alg[3]) for alg in average_measures]))
+print('Grades of community algorithms by average measures over the years: \n{}'.format([alg[0] + alg[1] + (1-alg[2]) + (1-alg[3]) for alg in average_measures]))
 
 
 
 
     
-    
-
-
-
-
-
-
-
+  
